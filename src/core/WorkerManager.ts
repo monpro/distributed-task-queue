@@ -39,6 +39,45 @@ export class WorkerManager {
         processorInfo.workers.push(worker)
     }
 
+    /**
+     * Terminates a worker for the specified job type.
+     * This method ensures that at least one worker always remains for each job type.
+     * If there's only one worker left or no workers, this method does nothing.
+     * 
+     * @param jobType - The type of job for which to terminate a worker
+     */
+    killWorker = (jobType: string) => {
+        const processorInfo = this.jobProcessors.get(jobType)
+        if (!processorInfo || processorInfo.workers.length <= 1) {
+            return;
+        }
+        const worker = processorInfo.workers.pop()
+        worker?.terminate()
+    }
+
+    /**
+     * Get the current worker count for the specified job type.
+     * @param jobType - The type of job
+     * @returns The number of active workers for the job type, or 0 if the job type is not registered
+     */
+    getWorkerCount = (jobType: string) => {
+        return this.jobProcessors.get(jobType)?.workers.length || 0;
+    }
+    
+    /**
+     * Check if a new worker can be spawned for the specified job type.
+     * @param jobType - The type of job
+     * @returns True if a new worker can be spawned, false otherwise
+     * @throws Error if the job type is not registered
+     */
+    canSpawnWorker = (jobType: string) => {
+        const processorInfo = this.jobProcessors.get(jobType)
+        if (!processorInfo) {
+            throw new Error(`No processor registered for job type: ${jobType}`);
+        }
+        return processorInfo.workers.length < processorInfo.maxWorkers;
+    }
+
     processJob = (jobType: string, jobData: any): Promise<any> => {
         const processInfo = this.jobProcessors.get(jobType);
         if (!processInfo) {
